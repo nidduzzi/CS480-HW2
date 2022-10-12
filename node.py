@@ -32,12 +32,12 @@ tokenMappings: Dict[TokenType, Pattern] = {
     TokenType.T_EXP: r'\^',
     TokenType.T_LCURL: r'\{',
     TokenType.T_RCURL: r'\}',
-    TokenType.T_SIN: r'SIN',
-    TokenType.T_COS: r'COS',
-    TokenType.T_TAN: r'TAN',
-    TokenType.T_COT: r'COT',
-    TokenType.T_LN: r'LN',
-    TokenType.T_LOG: r'LOG',
+    TokenType.T_SIN: r'(?:SIN)|(?:Sin)|(?:sin)',
+    TokenType.T_COS: r'(?:COS)|(?:Cos)|(?:cos)',
+    TokenType.T_TAN: r'(?:TAN)|(?:Tan)|(?:tan)',
+    TokenType.T_COT: r'(?:COT)|(?:Cot)|(?:cot)',
+    TokenType.T_LN: r'(?:LN)|(?:Ln)|(?:ln)',
+    TokenType.T_LOG: r'(?:LOG)|(?:Log)|(?:log)',
     TokenType.T_LPAR: r'\(',
     TokenType.T_RPAR: r'\)',
 }
@@ -80,17 +80,44 @@ class Node:
         self.value = value
         self.children: list[Node] = []
         self.span = span
+        self.id = -1
+        self.__p_reset()
 
-    def print(self, ttype=True, ntype=True, v=True, end='\n'):
-        print('{', end='')
-        if ttype:
-            print('token_type: {}'.format(self.token_type),
-                end=(', 'if ntype or v else''))
-        if ntype:
-            print('node_type: {}'.format(self.node_type), end=(', 'if v else''))
-        if v:
-            print('value: {}'.format(self.value), end='')
-        print('}', end=end)
+    def __p_reset(self):
+        self.__p__ttype = False
+        self.__p__ntype = True
+        self.__p__v = True
+        self.__p__span = True
+        self.__p__end = '\n'
+
+    # -------------------------------------------------------------------------------------
+    # Modified from:
+    # https://stackoverflow.com/questions/20242479/printing-a-tree-data-structure-in-python
+    def __str__(self, level=0):
+        ret = '\t'*level + '{ ' +\
+            (('ttype: ' + repr(self.token_type)+(', 'if self.__p__ntype or self.__p__v or self.__p__span else ''))if self.__p__ttype else '') + \
+            (('ntype: ' + repr(self.node_type)+(', 'if self.__p__v or self.__p__span else ''))if self.__p__ntype else '') + \
+            (('v: ' + repr(self.value)+(', 'if self.__p__span else ''))if self.__p__v else '') + \
+            (('s: ' + repr(self.span))if self.__p__span else '')+' }' + \
+            ('' if (level == 0 and len(self.children) == 0)
+             and not self.__p__end else '\n')
+        for child in self.children:
+            if type(child) is Node:
+                ret += child.__str__(level+1)
+        return ret
+
+    def __repr__(self):
+        return '<tree node representation>'
+    # -------------------------------------------------------------------------------------
+
+    def print(self, ttype=False, ntype=True, v=True, span=True, end='\n'):
+        self.__p__ttype = ttype
+        self.__p__ntype = ntype
+        self.__p__v = v
+        self.__p__span = span
+        self.__p__end = (end == '\n')
+        print(self, end=end)
+        self.__p_reset()
 
     def setPrecedence(self, precedence: int):
         self.precedence = precedence
@@ -135,7 +162,7 @@ nodeMappings: Dict[NodeType, NodeChar] = {
         "nclass": NodeClass.BINARY,
         "isType": lambda current, before, after: current is TokenType.T_MULT and
         before in {TokenType.T_NUM, TokenType.T_RPAR, TokenType.T_RCURL} and
-        after in {TokenType.T_NUM, TokenType.T_SIN, TokenType.T_COS, TokenType.T_TAN,
+        after in {TokenType.T_NUM, TokenType.T_PLUS, TokenType.T_MINUS, TokenType.T_SIN, TokenType.T_COS, TokenType.T_TAN,
                   TokenType.T_COT, TokenType.T_LN, TokenType.T_LOG, TokenType.T_LPAR, TokenType.T_LCURL}
     },
     NodeType.T_DIV: {
@@ -143,7 +170,7 @@ nodeMappings: Dict[NodeType, NodeChar] = {
         "nclass": NodeClass.BINARY,
         "isType": lambda current, before, after: current is TokenType.T_DIV and
         before in {TokenType.T_NUM, TokenType.T_RPAR, TokenType.T_RCURL} and
-        after in {TokenType.T_NUM, TokenType.T_SIN, TokenType.T_COS, TokenType.T_TAN,
+        after in {TokenType.T_NUM, TokenType.T_PLUS, TokenType.T_MINUS, TokenType.T_SIN, TokenType.T_COS, TokenType.T_TAN,
                   TokenType.T_COT, TokenType.T_LN, TokenType.T_LOG, TokenType.T_LPAR, TokenType.T_LCURL}
     },
     NodeType.T_EXP: {
@@ -202,7 +229,7 @@ nodeMappings: Dict[NodeType, NodeChar] = {
         "ttype": TokenType.T_PLUS,
         "nclass": NodeClass.UNARY,
         "isType": lambda current, before, after: current is TokenType.T_PLUS and
-        before in {TokenType.T_PLUS, TokenType.T_MINUS, TokenType.T_MULT, TokenType.T_DIV, TokenType.T_EXP, TokenType.T_SIN, TokenType.T_COS, TokenType.T_TAN, TokenType.T_COT, TokenType.T_LPAR, TokenType.T_LCURL} and
+        before in {None, TokenType.T_PLUS, TokenType.T_MINUS, TokenType.T_MULT, TokenType.T_DIV, TokenType.T_EXP, TokenType.T_SIN, TokenType.T_COS, TokenType.T_TAN, TokenType.T_COT, TokenType.T_LPAR, TokenType.T_LCURL} and
         after in {TokenType.T_NUM, TokenType.T_SIN, TokenType.T_COS, TokenType.T_TAN,
                   TokenType.T_COT, TokenType.T_LN, TokenType.T_LOG, TokenType.T_LPAR, TokenType.T_LCURL}
     },
