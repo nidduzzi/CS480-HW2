@@ -1,9 +1,10 @@
 import os
+from typing import List, Union
 from node import Node
 node_counter = 1
 
 
-def label(node):
+def label(node: Union[Node, List[Node]]):
     global node_counter
     if type(node) is Node:
         node.id = node_counter
@@ -22,7 +23,8 @@ def to_graphviz(node, num=None, testCase=None, png=False):
     dir = 'graphviz'
     if not(os.path.exists(dir) or os.path.isdir(dir)):
         os.mkdir(dir)
-    f = open('./'+dir+"/graphviz_input"+("_" + str(num) if num != None else ""), "wt")
+    f = open('./'+dir+"/graphviz_input" +
+             ("_" + str(num) if num != None else ""), "wt")
     f.write('graph "' + (testCase if testCase != None else '') + '"'+'\n')
     f.write('{'+'\n')
 
