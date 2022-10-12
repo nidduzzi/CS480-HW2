@@ -8,6 +8,10 @@ class MathTokenizer:
         self.inputString = inputString
         self.c_tokens = self.tokenize(inputString)
 
+    def print(self, ttype=False, ntype=True, v=True, end='\n'):
+        for t in self.c_tokens:
+            t.print(ttype=ttype, ntype=ntype, v=v, end=end)
+
     def tokenize(self, inputString: str) -> List[Node]:
 
         class RawToken(TypedDict):
@@ -45,24 +49,25 @@ class MathTokenizer:
             current = t["ttype"]
             before = rawTokens[i-1]["ttype"] if i > 0 else None
             after = rawTokens[i+1]["ttype"] if i < len(rawTokens)-1 else None
+            # get potential node types
             for ntype in nodeMappings:
                 if nodeMappings[ntype]["isType"](current, before, after):
                     ntypes.append(ntype)
 
-            # check if token is invalid
+            # check if token node type is valid
             if len(ntypes) > 1:
-                raise Exception('Internal error, Token {} matches node types {}\nCurrent Token: "{}", Previous Token: "{}", Next Token: "{}", i: {}\nRaw Tokens: {}'.format(
+                raise Exception('Token {} matches node types {}\nCurrent Token: "{}", Previous Token: "{}", Next Token: "{}", i: {}\nRaw Tokens: {}'.format(
                     t["match"][0], ntypes, current, before, after, i, [{"ttype": t["ttype"], "string": t["match"][0]} for t in rawTokens]))
             if len(ntypes) < 1:
                 raise Exception(
-                    'Internal error, Token {} matches no node types\nCurrent Token: "{}", Previous Token: "{}", Next Token: "{}", i: {}\nRaw Tokens: {}'.format(t["match"][0], current, before, after, i, [{"ttype": t["ttype"], "string": t["match"][0]} for t in rawTokens]))
-
+                    'Token {} matches no node types\nCurrent Token: "{}", Previous Token: "{}", Next Token: "{}", i: {}\nRaw Tokens: {}'.format(t["match"][0], current, before, after, i, [{"ttype": t["ttype"], "string": t["match"][0]} for t in rawTokens]))
+            # convert token into node
             tokens.append(Node(token_type=t["ttype"],
                                span=t["match"].span(),
                                node_type=ntypes[0],
                                node_class=nodeMappings[ntypes[0]]["nclass"],
                                value=float(
-                t["match"][0]) if (t["ttype"] == TokenType.T_NUM) else t["match"][0]
+                t["match"][0]) if (t["ttype"] == TokenType.T_NUM) else t["match"][0].capitalize()
             )
             )
         # add terminator node
@@ -70,4 +75,3 @@ class MathTokenizer:
             Node(TokenType.T_END, (len(rawTokens), len(rawTokens)+1), node_type=NodeType.T_END))
 
         return tokens
-    
