@@ -1,5 +1,6 @@
 import re
 from typing import List, TypedDict
+from mathError import MathTokenizerError
 from node import Node, NodeType, TokenType, nodeMappings, tokenMappings
 
 
@@ -24,6 +25,9 @@ class MathTokenizer:
             for m in re.finditer(tokenMappings[ttype], inputString):
                 if m != None:
                     rawTokens.append({"match": m, "ttype": ttype})
+        if len(rawTokens) == 0 and len(inputString):
+            raise MathTokenizerError(inputString, (0, len(
+                inputString)), 'Invalid Syntax: "{}" is invalid'.format(inputString))
         # sort tokens by starting index
         rawTokens.sort(key=lambda tok: tok["match"].span()[0])
 
@@ -34,12 +38,12 @@ class MathTokenizer:
         while i < len(rawTokens) and not hasOverlap and not hasInvalidTokens:
             if rawTokens[i]["match"].span()[0] - rawTokens[i-1]["match"].span()[1] < 0:
                 hasOverlap = True
-                raise Exception(
-                    'Invalid syntax. "{}" and "{}" are overlaped\nCurrent Tokens: {}'.format(rawTokens[i]["match"][0], rawTokens[i-1]["match"][0], rawTokens))
+                raise MathTokenizerError(inputString, (rawTokens[i-1]["match"].span()[1], rawTokens[i]["match"].span()[0]),
+                                         'Invalid Syntax: "{}" and "{}" are overlaped\nCurrent Tokens: {}'.format(rawTokens[i]["match"][0], rawTokens[i-1]["match"][0], rawTokens))
             elif rawTokens[i]["match"].span()[0] - rawTokens[i-1]["match"].span()[1] > 0:
                 hasInvalidTokens = True
-                raise Exception(
-                    'Invalid syntax. "{}" is invalid\nCurrent Tokens: {}'.format(inputString[rawTokens[i-1]["match"].span()[1]:rawTokens[i]["match"].span()[0]], rawTokens))
+                raise MathTokenizerError(inputString, (rawTokens[i-1]["match"].span()[1], rawTokens[i]["match"].span()[0]),
+                                         'Invalid Syntax: "{}" is an invalid token\nCurrent Tokens: {}'.format(inputString[rawTokens[i-1]["match"].span()[1]:rawTokens[i]["match"].span()[0]], rawTokens))
             i += 1
         # create list of token nodes
         tokens: list[Node] = []
@@ -56,14 +60,15 @@ class MathTokenizer:
 
             # check if token node type is valid
             if len(ntypes) > 1:
-                raise Exception('Token {} matches node types {}\nCurrent Token: "{}", Previous Token: "{}", Next Token: "{}", i: {}\nRaw Tokens: {}'.format(
+                raise MathTokenizerError(inputString, t["match"].span(), 'Invalid Syntax: Token {} matches node types {}\nCurrent Token: "{}", Previous Token: "{}", Next Token: "{}", i: {}\nRaw Tokens: {}'.format(
                     t["match"][0], ntypes, current, before, after, i, [{"ttype": t["ttype"], "string": t["match"][0]} for t in rawTokens]))
             if len(ntypes) < 1:
-                raise Exception(
-                    'Token {} matches no node types\nCurrent Token: "{}", Previous Token: "{}", Next Token: "{}", i: {}\nRaw Tokens: {}'.format(t["match"][0], current, before, after, i, [{"ttype": t["ttype"], "string": t["match"][0]} for t in rawTokens]))
+                raise MathTokenizerError(inputString, t["match"].span(), 'Invalid Syntax: Token {} matches no node types\nCurrent Token: "{}", Previous Token: "{}", Next Token: "{}", i: {}\nRaw Tokens: {}'.format(
+                    t["match"][0], current, before, after, i, [{"ttype": t["ttype"], "string": t["match"][0]} for t in rawTokens]))
             # convert token into node
             tokens.append(Node(token_type=t["ttype"],
                                span=t["match"].span(),
+                               tokenizer=self,
                                node_type=ntypes[0],
                                node_class=nodeMappings[ntypes[0]]["nclass"],
                                value=float(
@@ -72,6 +77,6 @@ class MathTokenizer:
             )
         # add terminator node
         tokens.append(
-            Node(TokenType.T_END, (len(rawTokens), len(rawTokens)+1), node_type=NodeType.T_END))
+            Node(token_type=TokenType.T_END, span=(len(rawTokens), len(rawTokens)+1), tokenizer=self, node_type=NodeType.T_END))
 
         return tokens

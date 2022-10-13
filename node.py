@@ -13,14 +13,16 @@ class TokenType(enum.Enum):
     T_SIN = 6
     T_COS = 7
     T_TAN = 8
-    T_COT = 9
-    T_LN = 10
-    T_LOG = 11
-    T_LPAR = 12
-    T_RPAR = 13
-    T_LCURL = 14
-    T_RCURL = 15
-    T_END = 16
+    T_CSC = 9
+    T_SEC = 10
+    T_COT = 11
+    T_LN = 12
+    T_LOG = 13
+    T_LPAR = 14
+    T_RPAR = 15
+    T_LCURL = 16
+    T_RCURL = 17
+    T_END = 18
 
 
 tokenMappings: Dict[TokenType, Pattern] = {
@@ -36,6 +38,8 @@ tokenMappings: Dict[TokenType, Pattern] = {
     TokenType.T_COS: r'(?:COS)|(?:Cos)|(?:cos)',
     TokenType.T_TAN: r'(?:TAN)|(?:Tan)|(?:tan)',
     TokenType.T_COT: r'(?:COT)|(?:Cot)|(?:cot)',
+    TokenType.T_SEC: r'(?:SEC)|(?:Sec)|(?:sec)',
+    TokenType.T_CSC: r'(?:CSC)|(?:Csc)|(?:csc)',
     TokenType.T_LN: r'(?:LN)|(?:Ln)|(?:ln)',
     TokenType.T_LOG: r'(?:LOG)|(?:Log)|(?:log)',
     TokenType.T_LPAR: r'\(',
@@ -53,16 +57,18 @@ class NodeType(enum.Enum):
     T_SIN = 6
     T_COS = 7
     T_TAN = 8
-    T_COT = 9
-    T_LN = 10
-    T_LOG = 11
-    T_UMINUS = 12
-    T_UPLUS = 13
-    T_LPAR = 14
-    T_RPAR = 15
-    T_LCURL = 16
-    T_RCURL = 17
-    T_END = 18
+    T_CSC = 9
+    T_SEC = 10
+    T_COT = 11
+    T_LN = 12
+    T_LOG = 13
+    T_UMINUS = 14
+    T_UPLUS = 15
+    T_LPAR = 16
+    T_RPAR = 17
+    T_LCURL = 18
+    T_RCURL = 19
+    T_END = 20
 
 
 class NodeClass(enum.Enum):
@@ -73,12 +79,13 @@ class NodeClass(enum.Enum):
 
 
 class Node:
-    def __init__(self, token_type: TokenType, span: Tuple[int, int], node_type: Union[NodeType, None] = None, node_class: Union[NodeClass, None] = None, value=None):
+    def __init__(self, node_type: Union[NodeType, None] = None, token_type: TokenType = None, span: Tuple[int, int] = None, node_class: Union[NodeClass, None] = None, tokenizer=None, value: Union[float, str, None] = None):
         self.token_type = token_type
         self.node_type = node_type
         self.node_class = node_class
         self.value = value
         self.children: list[Node] = []
+        self.tokenizer = tokenizer
         self.span = span
         self.id = -1
         self.__p_reset()
@@ -91,8 +98,8 @@ class Node:
         self.__p__end = '\n'
 
     # -------------------------------------------------------------------------------------
-    # Modified from:
-    # https://stackoverflow.com/questions/20242479/printing-a-tree-data-structure-in-python
+    # Credits:
+    # Based of work from https://stackoverflow.com/questions/20242479/printing-a-tree-data-structure-in-python
     def __str__(self, level=0):
         ret = '\t'*level + '{ ' +\
             (('ttype: ' + repr(self.token_type)+(', 'if self.__p__ntype or self.__p__v or self.__p__span else ''))if self.__p__ttype else '') + \
@@ -147,7 +154,7 @@ nodeMappings: Dict[NodeType, NodeChar] = {
         "isType": lambda current, before, after: current is TokenType.T_PLUS and
         before in {TokenType.T_NUM, TokenType.T_RPAR, TokenType.T_RCURL} and
         after in {TokenType.T_NUM, TokenType.T_PLUS, TokenType.T_MINUS, TokenType.T_SIN, TokenType.T_COS,
-                  TokenType.T_TAN, TokenType.T_COT, TokenType.T_LN, TokenType.T_LOG, TokenType.T_LPAR, TokenType.T_LCURL}
+                  TokenType.T_TAN, TokenType.T_CSC, TokenType.T_SEC, TokenType.T_COT, TokenType.T_LN, TokenType.T_LOG, TokenType.T_LPAR, TokenType.T_LCURL}
     },
     NodeType.T_MINUS: {
         "ttype": TokenType.T_MINUS,
@@ -155,7 +162,7 @@ nodeMappings: Dict[NodeType, NodeChar] = {
         "isType": lambda current, before, after: current is TokenType.T_MINUS and
         before in {TokenType.T_NUM, TokenType.T_RPAR, TokenType.T_RCURL} and
         after in {TokenType.T_NUM, TokenType.T_PLUS, TokenType.T_MINUS, TokenType.T_SIN, TokenType.T_COS,
-                  TokenType.T_TAN, TokenType.T_COT, TokenType.T_LN, TokenType.T_LOG, TokenType.T_LPAR, TokenType.T_LCURL}
+                  TokenType.T_TAN, TokenType.T_CSC, TokenType.T_SEC, TokenType.T_COT, TokenType.T_LN, TokenType.T_LOG, TokenType.T_LPAR, TokenType.T_LCURL}
     },
     NodeType.T_MULT: {
         "ttype": TokenType.T_MULT,
@@ -163,7 +170,7 @@ nodeMappings: Dict[NodeType, NodeChar] = {
         "isType": lambda current, before, after: current is TokenType.T_MULT and
         before in {TokenType.T_NUM, TokenType.T_RPAR, TokenType.T_RCURL} and
         after in {TokenType.T_NUM, TokenType.T_PLUS, TokenType.T_MINUS, TokenType.T_SIN, TokenType.T_COS, TokenType.T_TAN,
-                  TokenType.T_COT, TokenType.T_LN, TokenType.T_LOG, TokenType.T_LPAR, TokenType.T_LCURL}
+                  TokenType.T_CSC, TokenType.T_SEC, TokenType.T_COT, TokenType.T_LN, TokenType.T_LOG, TokenType.T_LPAR, TokenType.T_LCURL}
     },
     NodeType.T_DIV: {
         "ttype": TokenType.T_DIV,
@@ -171,15 +178,15 @@ nodeMappings: Dict[NodeType, NodeChar] = {
         "isType": lambda current, before, after: current is TokenType.T_DIV and
         before in {TokenType.T_NUM, TokenType.T_RPAR, TokenType.T_RCURL} and
         after in {TokenType.T_NUM, TokenType.T_PLUS, TokenType.T_MINUS, TokenType.T_SIN, TokenType.T_COS, TokenType.T_TAN,
-                  TokenType.T_COT, TokenType.T_LN, TokenType.T_LOG, TokenType.T_LPAR, TokenType.T_LCURL}
+                  TokenType.T_CSC, TokenType.T_SEC, TokenType.T_COT, TokenType.T_LN, TokenType.T_LOG, TokenType.T_LPAR, TokenType.T_LCURL}
     },
     NodeType.T_EXP: {
         "ttype": TokenType.T_EXP,
         "nclass": NodeClass.BINARY,
         "isType": lambda current, before, after: current is TokenType.T_EXP and
         before in {TokenType.T_NUM, TokenType.T_RPAR, TokenType.T_RCURL} and
-        after in {TokenType.T_NUM, TokenType.T_SIN, TokenType.T_COS, TokenType.T_TAN,
-                  TokenType.T_COT, TokenType.T_LN, TokenType.T_LOG, TokenType.T_LPAR, TokenType.T_LCURL}
+        after in {TokenType.T_NUM, TokenType.T_PLUS, TokenType.T_MINUS, TokenType.T_SIN, TokenType.T_COS, TokenType.T_TAN,
+                  TokenType.T_CSC, TokenType.T_SEC, TokenType.T_COT, TokenType.T_LN, TokenType.T_LOG, TokenType.T_LPAR, TokenType.T_LCURL}
     },
     NodeType.T_SIN: {
         "ttype": TokenType.T_SIN,
@@ -197,6 +204,18 @@ nodeMappings: Dict[NodeType, NodeChar] = {
         "ttype": TokenType.T_TAN,
         "nclass": NodeClass.UNARY,
         "isType": lambda current, before, after: current is TokenType.T_TAN and
+        after in {TokenType.T_NUM, TokenType.T_LPAR}
+    },
+    NodeType.T_CSC: {
+        "ttype": TokenType.T_CSC,
+        "nclass": NodeClass.UNARY,
+        "isType": lambda current, before, after: current is TokenType.T_CSC and
+        after in {TokenType.T_NUM, TokenType.T_LPAR}
+    },
+    NodeType.T_SEC: {
+        "ttype": TokenType.T_SEC,
+        "nclass": NodeClass.UNARY,
+        "isType": lambda current, before, after: current is TokenType.T_SEC and
         after in {TokenType.T_NUM, TokenType.T_LPAR}
     },
     NodeType.T_COT: {
@@ -221,17 +240,17 @@ nodeMappings: Dict[NodeType, NodeChar] = {
         "ttype": TokenType.T_MINUS,
         "nclass": NodeClass.UNARY,
         "isType": lambda current, before, after: current is TokenType.T_MINUS and
-        before in {None, TokenType.T_PLUS, TokenType.T_MINUS, TokenType.T_MULT, TokenType.T_DIV, TokenType.T_EXP, TokenType.T_SIN, TokenType.T_COS, TokenType.T_TAN, TokenType.T_COT, TokenType.T_LPAR, TokenType.T_LCURL} and
-        after in {TokenType.T_NUM, TokenType.T_SIN, TokenType.T_COS, TokenType.T_TAN,
-                  TokenType.T_COT, TokenType.T_LN, TokenType.T_LOG, TokenType.T_LPAR, TokenType.T_LCURL}
+        before in {None, TokenType.T_PLUS, TokenType.T_MINUS, TokenType.T_MULT, TokenType.T_DIV, TokenType.T_EXP, TokenType.T_SIN, TokenType.T_COS, TokenType.T_TAN, TokenType.T_CSC, TokenType.T_SEC, TokenType.T_COT, TokenType.T_LPAR, TokenType.T_LCURL} and
+        after in {TokenType.T_NUM, TokenType.T_PLUS, TokenType.T_MINUS, TokenType.T_SIN, TokenType.T_COS, TokenType.T_TAN,
+                  TokenType.T_CSC, TokenType.T_SEC, TokenType.T_COT, TokenType.T_LN, TokenType.T_LOG, TokenType.T_LPAR, TokenType.T_LCURL}
     },
     NodeType.T_UPLUS: {
         "ttype": TokenType.T_PLUS,
         "nclass": NodeClass.UNARY,
         "isType": lambda current, before, after: current is TokenType.T_PLUS and
-        before in {None, TokenType.T_PLUS, TokenType.T_MINUS, TokenType.T_MULT, TokenType.T_DIV, TokenType.T_EXP, TokenType.T_SIN, TokenType.T_COS, TokenType.T_TAN, TokenType.T_COT, TokenType.T_LPAR, TokenType.T_LCURL} and
-        after in {TokenType.T_NUM, TokenType.T_SIN, TokenType.T_COS, TokenType.T_TAN,
-                  TokenType.T_COT, TokenType.T_LN, TokenType.T_LOG, TokenType.T_LPAR, TokenType.T_LCURL}
+        before in {None, TokenType.T_PLUS, TokenType.T_MINUS, TokenType.T_MULT, TokenType.T_DIV, TokenType.T_EXP, TokenType.T_SIN, TokenType.T_COS, TokenType.T_TAN, TokenType.T_CSC, TokenType.T_SEC, TokenType.T_COT, TokenType.T_LPAR, TokenType.T_LCURL} and
+        after in {TokenType.T_NUM, TokenType.T_PLUS, TokenType.T_MINUS, TokenType.T_SIN, TokenType.T_COS, TokenType.T_TAN,
+                  TokenType.T_CSC, TokenType.T_SEC, TokenType.T_COT, TokenType.T_LN, TokenType.T_LOG, TokenType.T_LPAR, TokenType.T_LCURL}
     },
     NodeType.T_LCURL: {
         "ttype": TokenType.T_LCURL,
@@ -239,7 +258,7 @@ nodeMappings: Dict[NodeType, NodeChar] = {
         "isType": lambda current, before, after: current is TokenType.T_LCURL and
         before in {None, TokenType.T_PLUS, TokenType.T_MINUS, TokenType.T_MULT, TokenType.T_DIV, TokenType.T_EXP, TokenType.T_LPAR, TokenType.T_LCURL} and
         after in {TokenType.T_NUM, TokenType.T_PLUS,
-                  TokenType.T_MINUS, TokenType.T_SIN, TokenType.T_COS, TokenType.T_TAN, TokenType.T_COT, TokenType.T_LN, TokenType.T_LOG, TokenType.T_LPAR, TokenType.T_LCURL}
+                  TokenType.T_MINUS, TokenType.T_SIN, TokenType.T_COS, TokenType.T_TAN, TokenType.T_CSC, TokenType.T_SEC, TokenType.T_COT, TokenType.T_LN, TokenType.T_LOG, TokenType.T_LPAR, TokenType.T_LCURL}
     },
     NodeType.T_RCURL: {
         "ttype": TokenType.T_RCURL,
@@ -253,9 +272,9 @@ nodeMappings: Dict[NodeType, NodeChar] = {
         "ttype": TokenType.T_LPAR,
         "nclass": NodeClass.BRACKET,
         "isType": lambda current, before, after: current is TokenType.T_LPAR and
-        before in {None, TokenType.T_PLUS, TokenType.T_MINUS, TokenType.T_MULT, TokenType.T_DIV, TokenType.T_EXP, TokenType.T_SIN, TokenType.T_COS, TokenType.T_TAN, TokenType.T_COT, TokenType.T_LN, TokenType.T_LOG, TokenType.T_LPAR, TokenType.T_LCURL} and
+        before in {None, TokenType.T_PLUS, TokenType.T_MINUS, TokenType.T_MULT, TokenType.T_DIV, TokenType.T_EXP, TokenType.T_SIN, TokenType.T_COS, TokenType.T_TAN, TokenType.T_CSC, TokenType.T_SEC, TokenType.T_COT, TokenType.T_LN, TokenType.T_LOG, TokenType.T_LPAR, TokenType.T_LCURL} and
         after in {TokenType.T_NUM, TokenType.T_PLUS,
-                  TokenType.T_MINUS, TokenType.T_SIN, TokenType.T_COS, TokenType.T_TAN, TokenType.T_COT, TokenType.T_LN, TokenType.T_LOG, TokenType.T_LPAR, TokenType.T_LCURL}
+                  TokenType.T_MINUS, TokenType.T_SIN, TokenType.T_COS, TokenType.T_TAN, TokenType.T_CSC, TokenType.T_SEC, TokenType.T_COT, TokenType.T_LN, TokenType.T_LOG, TokenType.T_LPAR, TokenType.T_LCURL}
     },
     NodeType.T_RPAR: {
         "ttype": TokenType.T_RPAR,

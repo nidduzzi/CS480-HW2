@@ -1,9 +1,13 @@
 from copy import copy, deepcopy
 import re
 from typing import List
+from mathError import MathParserError
 from mathTokenizer import MathTokenizer
 from node import Node, NodeType
 
+# -------------------------------------------------------------------------------------
+# Credits:
+# Based of work from https://github.com/gnebehay/parser
 
 class MathParser():
     def __init__(self, inputString: str) -> None:
@@ -61,9 +65,9 @@ class MathParser():
             while self.currentToken().node_type in [NodeType.T_EXP]:
                 node = self.currentToken()
                 self.next()
-                node.children.append(
-                    self.parse_expression_precedence(3))
                 node.children.append(left_node)
+                node.children.append(
+                    self.parse_expression_precedence(2))
                 left_node = node
 
             return left_node
@@ -75,15 +79,15 @@ class MathParser():
                     node = self.currentToken()
                     self.next()
                     node.children.append(
-                        self.parse_expression_precedence(4))
+                        self.parse_expression_precedence(3))
                     expression = node
             else:
                 expression = self.parse_expression_precedence(4)
             return expression
         elif precedence == 4:
             expression: Node
-            ops = [NodeType.T_SIN, NodeType.T_COS,
-                   NodeType.T_TAN, NodeType.T_COT, NodeType.T_LN, NodeType.T_LOG]
+            ops = [NodeType.T_SIN, NodeType.T_COS, NodeType.T_TAN, NodeType.T_CSC,
+                   NodeType.T_SEC, NodeType.T_COT, NodeType.T_LN, NodeType.T_LOG]
             if self.currentToken().node_type in ops:
                 while self.currentToken().node_type in ops:
                     node = self.currentToken()
@@ -118,40 +122,6 @@ class MathParser():
         if self.currentToken().node_type == ttype:
             return self.next()
         else:
-            raise Exception(
-                'Invalid syntax: Expected token type {} on token {} of type {} at {}\ninput string: {}'.format(ttype, self.currentToken().value, self.currentToken().node_type, self.currentToken().span, self.inputString))
-
-
-# def parse_e(tokens):
-#     left_node = parse_e2(tokens)
-
-#     while tokens[0].token_type in [TokenType.T_PLUS, TokenType.T_MINUS]:
-#         node = tokens.pop(0)
-#         node.children.append(left_node)
-#         node.children.append(parse_e2(tokens))
-#         left_node = node
-
-#     return left_node
-
-
-# def parse_e2(tokens):
-#     left_node = parse_e3(tokens)
-
-#     while tokens[0].token_type in [TokenType.T_MULT, TokenType.T_DIV]:
-#         node = tokens.pop(0)
-#         node.children.append(left_node)
-#         node.children.append(parse_e3(tokens))
-#         left_node = node
-
-#     return left_node
-
-
-# def parse_e3(tokens):
-#     if tokens[0].token_type == TokenType.T_NUM:
-#         return tokens.pop(0)
-
-#     match(tokens, TokenType.T_LPAR)
-#     expression = parse_e(tokens)
-#     match(tokens, TokenType.T_RPAR)
-
-#     return expression
+            raise MathParserError(self.inputString, self.currentToken().span,
+                                  'Parser Error: Expected token type {} on token {} of type {} at {}'.format(ttype, self.currentToken().value, self.currentToken().node_type, self.currentToken().span))
+# -------------------------------------------------------------------------------------

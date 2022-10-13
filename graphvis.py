@@ -3,6 +3,9 @@ from typing import List, Union
 from node import Node
 node_counter = 1
 
+# -------------------------------------------------------------------------------------
+# Credits:
+# Based of work from https://github.com/gnebehay/parser
 
 def label(node: Union[Node, List[Node]]):
     global node_counter
@@ -47,3 +50,4 @@ def _to_graphviz(node, f):
     for child in node.children:
         f.write('n{} -- n{} ;'.format(node.id, child.id) + '\n')
         _to_graphviz(child, f)
+# -------------------------------------------------------------------------------------
