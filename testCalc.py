@@ -263,7 +263,7 @@ if __name__ == "__main__":
             isequal = False
             falseNeg += 1
         print(
-            f"|{i:4}|{expr[1:min(len(expr),50)]:50}|{isequal:7}|{str(Ores)[1:min(len(expr),10)]:10}|{str(Cres)[1:min(len(expr),10)]:10}|"
+            f"|{i:4}|{expr[:min(len(expr),50)]:50}|{isequal:7}|{str(Ores)[:min(len(expr),20)]:20}|{str(Cres)[:min(len(expr),20)]:20}|"
         )
 
     notActualCorrect = list(
@@ -274,12 +274,12 @@ if __name__ == "__main__":
     for i, [Ores, Cres, expr] in enumerate(
         notActualCorrect + list(zip(OIresult, CIresult, oracleIncorrect))
     ):
-        if type(Cres) == float:
+        if type(Cres) == float and type(Ores) != float:
             falsePos += 1
         else:
             trueNeg += 1
         print(
-            f"|{i:4}|{expr[1:min(len(expr),50)]:50}|{str(Ores)[1:min(len(expr),10)]:10}|{str(Cres)[1:min(len(expr),10)]:10}|"
+            f"|{i:4}|{expr[:min(len(expr),50)]:50}|{str(Ores)[:min(len(expr),20)]:20}|{str(Cres)[:min(len(expr),20)]:20}|"
         )
     print("-" * 80)
     accuracy = (truePos + trueNeg) / (truePos + trueNeg + falseNeg + falsePos)
